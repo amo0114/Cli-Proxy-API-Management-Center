@@ -8,6 +8,7 @@ import {
   IconSatellite,
   IconSidebarQuickStart,
 } from '@/components/ui/icons';
+import { UsageStatisticsCard } from '@/components/usageStatistics/UsageStatisticsCard';
 import { useAuthStore, useConfigStore, useModelsStore } from '@/stores';
 import { authFilesApi } from '@/services/api';
 import { useApiKeysForModels } from '@/hooks/useApiKeysForModels';
@@ -284,6 +285,8 @@ export function DashboardPage() {
           ))}
         </div>
       </section>
+
+      <UsageStatisticsCard connected={connectionStatus === 'connected'} />
 
       {/* Config pills section */}
       {config && (

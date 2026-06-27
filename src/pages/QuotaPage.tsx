@@ -12,6 +12,7 @@ import {
   ANTIGRAVITY_CONFIG,
   CLAUDE_CONFIG,
   CODEX_CONFIG,
+  OPENCODE_GO_CONFIG,
   KIMI_CONFIG,
   XAI_CONFIG,
 } from '@/components/quota';
@@ -71,6 +72,12 @@ export function QuotaPage() {
       />
       <QuotaSection
         config={CODEX_CONFIG}
+        files={files}
+        loading={loading}
+        disabled={disableControls}
+      />
+      <QuotaSection
+        config={OPENCODE_GO_CONFIG}
         files={files}
         loading={loading}
         disabled={disableControls}

@@ -9,6 +9,7 @@ export {
   ANTIGRAVITY_CONFIG,
   CLAUDE_CONFIG,
   CODEX_CONFIG,
+  OPENCODE_GO_CONFIG,
   KIMI_CONFIG,
   XAI_CONFIG,
 } from './quotaConfigs';

@@ -21,7 +21,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { IconFilterAll, IconPlus, IconSearch } from '@/components/ui/icons';
+import { IconFilterAll, IconSearch } from '@/components/ui/icons';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { AuthFilesStatusFilterCard } from '@/features/authFiles/components/AuthFilesStatusFilterCard';
@@ -42,6 +42,7 @@ import {
   type ResolvedTheme,
 } from '@/features/authFiles/constants';
 import { AuthFileCard } from '@/features/authFiles/components/AuthFileCard';
+import { AuthFileCreateMenu } from '@/features/authFiles/components/AuthFileCreateMenu';
 import { AuthFileModelsModal } from '@/features/authFiles/components/AuthFileModelsModal';
 import { AuthFilesPrefixProxyEditorModal } from '@/features/authFiles/components/AuthFilesPrefixProxyEditorModal';
 import { OpenCodeGoCredentialModal } from '@/features/authFiles/components/OpenCodeGoCredentialModal';
@@ -718,23 +719,12 @@ export function AuthFilesPage() {
             <Button variant="secondary" size="sm" onClick={handleHeaderRefresh} disabled={loading}>
               {t('common.refresh')}
             </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={openOpenCodeGoCreator}
+            <AuthFileCreateMenu
               disabled={disableControls}
-            >
-              <IconPlus size={16} />
-              {t('auth_files.opencode_go_add_button')}
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleUploadClick}
-              disabled={disableControls || uploading}
-              loading={uploading}
-            >
-              {t('auth_files.upload_button')}
-            </Button>
+              uploading={uploading}
+              onUpload={handleUploadClick}
+              onCreateOpenCodeGo={openOpenCodeGoCreator}
+            />
             <Button
               variant="danger"
               size="sm"

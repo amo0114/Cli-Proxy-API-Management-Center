@@ -1,0 +1,73 @@
+.createMenu {
+  position: relative;
+  display: inline-flex;
+}
+
+.trigger:global(.btn.btn-sm) {
+  white-space: nowrap;
+}
+
+.trigger :global(svg) {
+  flex: 0 0 auto;
+  vertical-align: middle;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 210px;
+  padding: 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  box-shadow: var(--shadow);
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.menuItem:hover:not(:disabled),
+.menuItem:focus-visible {
+  background: var(--bg-hover, var(--bg-tertiary));
+}
+
+.menuItem:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary-color) 35%, transparent);
+  outline-offset: 1px;
+}
+
+.menuItem:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.menuItem :global(svg),
+.menuItem :global(.loading-spinner) {
+  flex: 0 0 auto;
+}

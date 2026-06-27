@@ -8,6 +8,8 @@ import iconGrokDark from '@/assets/icons/grok-dark.svg';
 import iconIflow from '@/assets/icons/iflow.svg';
 import iconKimiDark from '@/assets/icons/kimi-dark.svg';
 import iconKimiLight from '@/assets/icons/kimi-light.svg';
+import iconOpenCodeGoDark from '@/assets/icons/opencode-go-dark.svg';
+import iconOpenCodeGoLight from '@/assets/icons/opencode-go-light.svg';
 import iconQwen from '@/assets/icons/qwen.svg';
 import iconVertex from '@/assets/icons/vertex.svg';
 import type { AuthFileItem } from '@/types';
@@ -25,12 +27,13 @@ export type AuthFileModelItem = {
 };
 export type AuthFileIconAsset = string | { light: string; dark: string };
 
-export type QuotaProviderType = 'antigravity' | 'claude' | 'codex' | 'kimi' | 'xai';
+export type QuotaProviderType = 'antigravity' | 'claude' | 'codex' | 'opencode-go' | 'kimi' | 'xai';
 
 export const QUOTA_PROVIDER_TYPES = new Set<QuotaProviderType>([
   'antigravity',
   'claude',
   'codex',
+  'opencode-go',
   'kimi',
   'xai',
 ]);
@@ -42,6 +45,7 @@ export const OAUTH_PROVIDER_PRESETS = [
   'xai',
   'claude',
   'codex',
+  'opencode-go',
   'kimi',
 ];
 
@@ -87,6 +91,10 @@ export const TYPE_COLORS: Record<string, TypeColorSet> = {
     light: { bg: '#eae7ff', text: '#3538d4' },
     dark: { bg: '#262395', text: '#b5b0ff' },
   },
+  'opencode-go': {
+    light: { bg: '#def7ec', text: '#047857' },
+    dark: { bg: '#064e3b', text: '#86efac' },
+  },
   // Antigravity logo: 多色（主色 #3789F9 蓝 + #53A89A 青绿），用青色区分
   antigravity: {
     light: { bg: '#e0f7fa', text: '#006064' },
@@ -122,6 +130,7 @@ export const AUTH_FILE_ICONS: Record<string, AuthFileIconAsset> = {
   aistudio: iconGemini,
   claude: iconClaude,
   codex: iconCodex,
+  'opencode-go': { light: iconOpenCodeGoLight, dark: iconOpenCodeGoDark },
   gemini: iconGemini,
   xai: { light: iconGrok, dark: iconGrokDark },
   iflow: iconIflow,

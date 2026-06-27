@@ -113,6 +113,7 @@
 .antigravityGrid,
 .claudeGrid,
 .codexGrid,
+.opencodeGoGrid,
 .kimiGrid,
 .xaiGrid {
   display: grid;
@@ -127,6 +128,7 @@
 .antigravityControls,
 .claudeControls,
 .codexControls,
+.opencodeGoControls,
 .kimiControls,
 .xaiControls {
   display: flex;
@@ -139,6 +141,7 @@
 .antigravityControl,
 .claudeControl,
 .codexControl,
+.opencodeGoControl,
 .kimiControl,
 .xaiControl {
   display: flex;
@@ -258,6 +261,10 @@
   background-image: linear-gradient(180deg, rgba(234, 231, 255, 0.18), rgba(234, 231, 255, 0));
 }
 
+.opencodeGoCard {
+  background-image: linear-gradient(180deg, rgba(222, 247, 236, 0.18), rgba(222, 247, 236, 0));
+}
+
 .kimiCard {
   background-image: linear-gradient(180deg, rgba(220, 232, 255, 0.2), rgba(220, 232, 255, 0));
 }
@@ -362,6 +369,69 @@
 }
 
 .quotaBarFillLow {
+  background-color: var(--danger-color);
+}
+
+.opencodeGoQuotaWindows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.opencodeGoQuotaMeta {
+  column-gap: 14px;
+}
+
+.opencodeGoQuotaMetaItem {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.opencodeGoQuotaWindow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.opencodeGoQuotaWindowHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm;
+  min-width: 0;
+
+  @include mobile {
+    align-items: flex-start;
+  }
+}
+
+.opencodeGoQuotaWindowMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.opencodeGoQuotaPercent {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.opencodeGoQuotaResetAt {
+  color: var(--text-secondary);
+}
+
+.opencodeGoQuotaBarFillNormal {
+  background-color: var(--success-color, #22c55e);
+}
+
+.opencodeGoQuotaBarFillWarning {
+  background-color: var(--quota-medium-color, #e0aa14);
+}
+
+.opencodeGoQuotaBarFillDanger {
   background-color: var(--danger-color);
 }
 

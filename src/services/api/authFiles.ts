@@ -5,6 +5,7 @@
 import { apiClient } from './client';
 import type { AuthFilesResponse } from '@/types/authFile';
 import type { OAuthModelAliasEntry } from '@/types';
+import type { OpenCodeGoCredential, OpenCodeGoQuotaResponse, OpenCodeGoQuotaResult } from '@/types';
 import { normalizeOAuthProviderKey } from '@/utils/providerKeys';
 import { parseTimestampMs } from '@/utils/timestamp';
 
@@ -43,6 +44,26 @@ type AuthFileBatchDeleteResult = {
   deleted: number;
   files: string[];
   failed: AuthFileBatchFailure[];
+};
+export type OpenCodeGoCredentialPayload = {
+  name?: string;
+  workspace_id?: string;
+  auth_cookie?: string;
+  clear_auth_cookie?: boolean;
+  enabled?: boolean;
+  show_rolling?: boolean;
+  show_weekly?: boolean;
+  show_monthly?: boolean;
+  refresh_interval_sec?: number;
+};
+type OpenCodeGoCredentialResponse = {
+  status?: string;
+  file?: string;
+  credential?: OpenCodeGoCredential;
+};
+type OpenCodeGoCredentialTestResponse = {
+  status?: string;
+  quota?: OpenCodeGoQuotaResult;
 };
 
 export const AUTH_FILE_INVALID_JSON_OBJECT_ERROR = 'AUTH_FILE_INVALID_JSON_OBJECT';
@@ -403,6 +424,31 @@ export const authFilesApi = {
 
   saveJsonObject: (name: string, json: Record<string, unknown>) =>
     saveAuthFileText(name, JSON.stringify(json)),
+
+  createOpenCodeGoCredential: (payload: OpenCodeGoCredentialPayload) =>
+    apiClient.post<OpenCodeGoCredentialResponse>('/auth-files/opencode-go', payload),
+
+  patchOpenCodeGoCredential: (id: string, payload: OpenCodeGoCredentialPayload) =>
+    apiClient.patch<OpenCodeGoCredentialResponse>(
+      `/auth-files/opencode-go/${encodeURIComponent(id)}`,
+      payload
+    ),
+
+  testOpenCodeGoCredential: (payload: OpenCodeGoCredentialPayload) =>
+    apiClient.post<OpenCodeGoCredentialTestResponse>('/auth-files/opencode-go/test', payload),
+
+  fetchOpenCodeGoQuotas: () => apiClient.get<OpenCodeGoQuotaResponse>('/quotas/opencode-go'),
+
+  refreshOpenCodeGoQuotas: (ids?: string[]) =>
+    apiClient.post<OpenCodeGoQuotaResponse>(
+      '/quotas/opencode-go/refresh',
+      ids && ids.length > 0 ? { ids } : undefined
+    ),
+
+  refreshOpenCodeGoQuota: (id: string) =>
+    apiClient.post<OpenCodeGoQuotaResponse>(
+      `/quotas/opencode-go/${encodeURIComponent(id)}/refresh`
+    ),
 
   // OAuth 排除模型
   async getOauthExcludedModels(): Promise<Record<string, string[]>> {

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { IconRefreshCw } from '@/components/ui/icons';
 import type { AuthFileItem, ResolvedTheme, ThemeColors } from '@/types';
 import { TYPE_COLORS } from '@/utils/quota';
+import { normalizeOAuthProviderKey } from '@/utils/providerKeys';
 import styles from '@/pages/QuotaPage.module.scss';
 
 type QuotaStatus = 'idle' | 'loading' | 'success' | 'error';
@@ -71,6 +72,21 @@ interface QuotaCardProps<TState extends QuotaStatusState> {
   renderQuotaItems: (quota: TState, t: TFunction, helpers: QuotaRenderHelpers) => ReactNode;
 }
 
+const normalizeDisplayNameKey = (value: string): string =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+
+const getQuotaCardDisplayName = (item: AuthFileItem, displayType: string): string => {
+  const name = item.name;
+  if (displayType === 'opencode-go') {
+    const key = normalizeDisplayNameKey(name);
+    if (key === 'opencodego' || key === 'opencode') return 'OpenCode';
+  }
+  return name;
+};
+
 export function QuotaCard<TState extends QuotaStatusState>({
   item,
   quota,
@@ -86,7 +102,8 @@ export function QuotaCard<TState extends QuotaStatusState>({
 }: QuotaCardProps<TState>) {
   const { t } = useTranslation();
 
-  const displayType = item.type || item.provider || defaultType;
+  const displayType = normalizeOAuthProviderKey(String(item.type || item.provider || defaultType));
+  const displayName = getQuotaCardDisplayName(item, displayType);
   const typeColorSet = TYPE_COLORS[displayType] || TYPE_COLORS.unknown;
   const typeColor: ThemeColors =
     resolvedTheme === 'dark' && typeColorSet.dark ? typeColorSet.dark : typeColorSet.light;
@@ -123,7 +140,7 @@ export function QuotaCard<TState extends QuotaStatusState>({
         >
           {getTypeLabel(displayType)}
         </span>
-        <span className={styles.fileName}>{item.name}</span>
+        <span className={styles.fileName}>{displayName}</span>
       </div>
 
       <div className={styles.quotaSection}>

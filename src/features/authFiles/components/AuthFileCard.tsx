@@ -52,6 +52,7 @@ export type AuthFileCardProps = {
   onShowModels: (file: AuthFileItem) => void;
   onDownload: (name: string) => void;
   onOpenPrefixProxyEditor: (file: AuthFileItem) => void;
+  onOpenOpenCodeGoEditor: (file: AuthFileItem) => void;
   onDelete: (name: string) => void;
   onToggleStatus: (file: AuthFileItem, enabled: boolean) => void;
   onToggleSelect: (name: string) => void;
@@ -61,6 +62,31 @@ const resolveQuotaType = (file: AuthFileItem): QuotaProviderType | null => {
   const provider = resolveAuthProvider(file);
   if (!QUOTA_PROVIDER_TYPES.has(provider as QuotaProviderType)) return null;
   return provider as QuotaProviderType;
+};
+
+const readObjectField = (value: unknown): Record<string, unknown> | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+};
+
+const readTextField = (value: unknown): string => {
+  if (typeof value === 'string') return value.trim();
+  if (value === undefined || value === null) return '';
+  return String(value).trim();
+};
+
+const normalizeDisplayNameKey = (value: string): string =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+
+const getAuthFileDisplayName = (file: AuthFileItem, providerKey: string): string => {
+  if (providerKey === 'opencode-go') {
+    const key = normalizeDisplayNameKey(file.name);
+    if (key === 'opencodego' || key === 'opencode') return 'OpenCode';
+  }
+  return file.name;
 };
 
 export function AuthFileCard(props: AuthFileCardProps) {
@@ -78,6 +104,7 @@ export function AuthFileCard(props: AuthFileCardProps) {
     onShowModels,
     onDownload,
     onOpenPrefixProxyEditor,
+    onOpenOpenCodeGoEditor,
     onDelete,
     onToggleStatus,
     onToggleSelect,
@@ -91,6 +118,8 @@ export function AuthFileCard(props: AuthFileCardProps) {
   const isRuntimeOnly = isRuntimeOnlyAuthFile(file);
   const providerKey = normalizeProviderKey(String(file.type ?? file.provider ?? 'unknown'));
   const isAistudio = providerKey === 'aistudio';
+  const isOpenCodeGo = providerKey === 'opencode-go';
+  const displayName = getAuthFileDisplayName(file, providerKey);
   const showModelsButton = !isRuntimeOnly || isAistudio;
   const typeColor = getTypeColor(providerKey, resolvedTheme);
   const typeLabel = getTypeLabel(t, providerKey);
@@ -108,11 +137,13 @@ export function AuthFileCard(props: AuthFileCardProps) {
         ? styles.claudeCard
         : quotaType === 'codex'
           ? styles.codexCard
-          : quotaType === 'kimi'
-            ? styles.kimiCard
-            : quotaType === 'xai'
-              ? styles.xaiCard
-              : '';
+          : quotaType === 'opencode-go'
+            ? styles.opencodeGoCard
+            : quotaType === 'kimi'
+              ? styles.kimiCard
+              : quotaType === 'xai'
+                ? styles.xaiCard
+                : '';
 
   const rawAuthIndex = file['auth_index'] ?? file.authIndex;
   const authIndexKey = normalizeRecentRequestAuthIndex(rawAuthIndex);
@@ -125,6 +156,13 @@ export function AuthFileCard(props: AuthFileCardProps) {
 
   const priorityValue = parsePriorityValue(file.priority ?? file['priority']);
   const noteValue = typeof file.note === 'string' ? file.note.trim() : '';
+  const opencodeGoCredential = readObjectField(file.opencode_go);
+  const opencodeGoWorkspace = isOpenCodeGo
+    ? readTextField(file.workspace_id) || readTextField(opencodeGoCredential?.workspace_id)
+    : '';
+  const settingsButtonTitle = isOpenCodeGo
+    ? t('auth_files.opencode_go_edit_button')
+    : t('auth_files.prefix_proxy_button');
   const stateLabel = isRuntimeOnly
     ? t('auth_files.type_virtual') || '虚拟认证文件'
     : file.disabled
@@ -190,8 +228,8 @@ export function AuthFileCard(props: AuthFileCardProps) {
                 </span>
                 <span className={`${styles.stateBadge} ${stateBadgeClass}`}>{stateLabel}</span>
               </div>
-              <span className={styles.fileName} title={file.name}>
-                {file.name}
+              <span className={styles.fileName} title={displayName}>
+                {displayName}
               </span>
               {!compact && noteValue && (
                 <div className={styles.noteText} title={noteValue}>
@@ -213,6 +251,14 @@ export function AuthFileCard(props: AuthFileCardProps) {
               <span className={styles.metaLabel}>{t('auth_files.file_modified')}</span>
               <span className={styles.metaValue}>{formatModified(file)}</span>
             </div>
+            {opencodeGoWorkspace && (
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>
+                  {t('auth_files.opencode_go_workspace_short')}
+                </span>
+                <span className={styles.metaValue}>{opencodeGoWorkspace}</span>
+              </div>
+            )}
             {priorityValue !== undefined && (
               <div className={`${styles.metaItem} ${styles.priorityBadge}`}>
                 <span className={styles.metaLabel}>{t('auth_files.priority_display')}</span>
@@ -294,9 +340,11 @@ export function AuthFileCard(props: AuthFileCardProps) {
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => onOpenPrefixProxyEditor(file)}
+                    onClick={() =>
+                      isOpenCodeGo ? onOpenOpenCodeGoEditor(file) : onOpenPrefixProxyEditor(file)
+                    }
                     className={styles.iconButton}
-                    title={t('auth_files.prefix_proxy_button')}
+                    title={settingsButtonTitle}
                     disabled={disableControls}
                   >
                     <IconSettings className={styles.actionIcon} size={16} />

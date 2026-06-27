@@ -421,7 +421,8 @@
   }
 }
 
-.codexGrid {
+.codexGrid,
+.opencodeGoGrid {
   display: grid;
   gap: $spacing-md;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -456,7 +457,8 @@
   }
 }
 
-.codexControls {
+.codexControls,
+.opencodeGoControls {
   display: flex;
   gap: $spacing-md;
   flex-wrap: wrap;
@@ -464,7 +466,8 @@
   margin-bottom: $spacing-md;
 }
 
-.codexControl {
+.codexControl,
+.opencodeGoControl {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -488,6 +491,10 @@
 
 .codexCard {
   background-image: linear-gradient(180deg, rgba(234, 231, 255, 0.08), transparent);
+}
+
+.opencodeGoCard {
+  background-image: linear-gradient(180deg, rgba(222, 247, 236, 0.1), transparent);
 }
 
 .kimiCard {
@@ -594,6 +601,69 @@
 }
 
 .quotaBarFillLow {
+  background-color: var(--danger-color);
+}
+
+.opencodeGoQuotaWindows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.opencodeGoQuotaMeta {
+  column-gap: 14px;
+}
+
+.opencodeGoQuotaMetaItem {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.opencodeGoQuotaWindow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.opencodeGoQuotaWindowHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm;
+  min-width: 0;
+
+  @include mobile {
+    align-items: flex-start;
+  }
+}
+
+.opencodeGoQuotaWindowMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.opencodeGoQuotaPercent {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.opencodeGoQuotaResetAt {
+  color: var(--text-secondary);
+}
+
+.opencodeGoQuotaBarFillNormal {
+  background-color: var(--success-color, #22c55e);
+}
+
+.opencodeGoQuotaBarFillWarning {
+  background-color: var(--quota-medium-color, #e0aa14);
+}
+
+.opencodeGoQuotaBarFillDanger {
   background-color: var(--danger-color);
 }
 
@@ -1834,6 +1904,127 @@
 .prefixProxyTextareaInvalid {
   border-color: var(--danger-color);
   box-shadow: 0 0 0 3px rgba($error-color, 0.12);
+}
+
+.opencodeGoForm {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+
+  :global(.form-group) {
+    margin: 0;
+  }
+}
+
+.opencodeGoFieldGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $spacing-md;
+
+  @include mobile {
+    grid-template-columns: 1fr;
+  }
+}
+
+.opencodeGoToggleGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $spacing-sm;
+
+  @include mobile {
+    grid-template-columns: 1fr;
+  }
+}
+
+.opencodeGoToggleItem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--border-color) 62%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-secondary) 56%, transparent);
+
+  > label {
+    width: 100%;
+    min-width: 0;
+    justify-content: space-between;
+  }
+}
+
+.opencodeGoModalError {
+  padding: $spacing-sm $spacing-md;
+  border-radius: $radius-md;
+  border: 1px solid var(--danger-color);
+  background-color: rgba($error-color, 0.08);
+  color: var(--danger-color);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.opencodeGoTestResult {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  border: 1px solid color-mix(in srgb, var(--success-color, #22c55e) 34%, var(--border-color));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--success-badge-bg, #d1fae5) 28%, transparent);
+}
+
+.opencodeGoTestHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm;
+  font-size: 13px;
+  color: var(--text-primary);
+
+  strong {
+    color: var(--success-badge-text, #065f46);
+    font-weight: 700;
+  }
+}
+
+.opencodeGoWindowList {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: $spacing-xs;
+
+  @include mobile {
+    grid-template-columns: 1fr;
+  }
+}
+
+.opencodeGoWindowRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-primary) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-color) 58%, transparent);
+}
+
+.opencodeGoWindowLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.opencodeGoWindowMeta {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.opencodeGoFormActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
 }
 
 .cardActions {

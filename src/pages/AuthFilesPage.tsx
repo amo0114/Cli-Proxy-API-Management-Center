@@ -21,7 +21,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { IconFilterAll, IconSearch } from '@/components/ui/icons';
+import { IconFilterAll, IconPlus, IconSearch } from '@/components/ui/icons';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { AuthFilesStatusFilterCard } from '@/features/authFiles/components/AuthFilesStatusFilterCard';
@@ -44,6 +44,7 @@ import {
 import { AuthFileCard } from '@/features/authFiles/components/AuthFileCard';
 import { AuthFileModelsModal } from '@/features/authFiles/components/AuthFileModelsModal';
 import { AuthFilesPrefixProxyEditorModal } from '@/features/authFiles/components/AuthFilesPrefixProxyEditorModal';
+import { OpenCodeGoCredentialModal } from '@/features/authFiles/components/OpenCodeGoCredentialModal';
 import { OAuthExcludedCard } from '@/features/authFiles/components/OAuthExcludedCard';
 import { OAuthModelAliasCard } from '@/features/authFiles/components/OAuthModelAliasCard';
 import { useAuthFilesData } from '@/features/authFiles/hooks/useAuthFilesData';
@@ -62,6 +63,7 @@ import {
   type AuthFilesSortMode,
 } from '@/features/authFiles/uiState';
 import { useAuthStore, useNotificationStore, useThemeStore } from '@/stores';
+import type { AuthFileItem } from '@/types';
 import styles from './AuthFilesPage.module.scss';
 
 const easePower3Out = (progress: number) => 1 - (1 - progress) ** 4;
@@ -114,6 +116,8 @@ export function AuthFilesPage() {
   const [pageSizeInput, setPageSizeInput] = useState('9');
   const [viewMode, setViewMode] = useState<'diagram' | 'list'>('list');
   const [sortMode, setSortMode] = useState<AuthFilesSortMode>('default');
+  const [openCodeGoEditorFile, setOpenCodeGoEditorFile] = useState<AuthFileItem | null>(null);
+  const [openCodeGoModalOpen, setOpenCodeGoModalOpen] = useState(false);
   const [batchActionBarVisible, setBatchActionBarVisible] = useState(false);
   const [uiStateHydrated, setUiStateHydrated] = useState(false);
   const floatingBatchActionsRef = useRef<HTMLDivElement>(null);
@@ -534,6 +538,28 @@ export function AuthFilesPage() {
     [filter, navigate]
   );
 
+  const openOpenCodeGoCreator = useCallback(() => {
+    setOpenCodeGoEditorFile(null);
+    setOpenCodeGoModalOpen(true);
+  }, []);
+
+  const openOpenCodeGoEditor = useCallback((file: AuthFileItem) => {
+    setOpenCodeGoEditorFile(file);
+    setOpenCodeGoModalOpen(true);
+  }, []);
+
+  const closeOpenCodeGoModal = useCallback(() => {
+    setOpenCodeGoModalOpen(false);
+    setOpenCodeGoEditorFile(null);
+  }, []);
+
+  const handleOpenCodeGoSaved = useCallback(() => {
+    closeOpenCodeGoModal();
+    setFilter('opencode-go');
+    setPage(1);
+    void loadFiles();
+  }, [closeOpenCodeGoModal, loadFiles]);
+
   useActionBarHeightVar(
     floatingBatchActionsRef,
     '--auth-files-action-bar-height',
@@ -693,6 +719,15 @@ export function AuthFilesPage() {
               {t('common.refresh')}
             </Button>
             <Button
+              variant="secondary"
+              size="sm"
+              onClick={openOpenCodeGoCreator}
+              disabled={disableControls}
+            >
+              <IconPlus size={16} />
+              {t('auth_files.opencode_go_add_button')}
+            </Button>
+            <Button
               size="sm"
               onClick={handleUploadClick}
               disabled={disableControls || uploading}
@@ -837,6 +872,7 @@ export function AuthFilesPage() {
                     onShowModels={showModels}
                     onDownload={handleDownload}
                     onOpenPrefixProxyEditor={openPrefixProxyEditor}
+                    onOpenOpenCodeGoEditor={openOpenCodeGoEditor}
                     onDelete={handleDelete}
                     onToggleStatus={handleStatusToggle}
                     onToggleSelect={toggleSelect}
@@ -923,6 +959,14 @@ export function AuthFilesPage() {
         onCopyText={copyTextWithNotification}
         onSave={handlePrefixProxySave}
         onChange={handlePrefixProxyChange}
+      />
+
+      <OpenCodeGoCredentialModal
+        open={openCodeGoModalOpen}
+        file={openCodeGoEditorFile}
+        disableControls={disableControls}
+        onClose={closeOpenCodeGoModal}
+        onSaved={handleOpenCodeGoSaved}
       />
 
       {batchActionBarVisible && typeof document !== 'undefined'

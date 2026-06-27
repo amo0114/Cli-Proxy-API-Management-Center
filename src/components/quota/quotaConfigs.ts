@@ -24,6 +24,9 @@ import type {
   CodexUsagePayload,
   KimiQuotaRow,
   KimiQuotaState,
+  OpenCodeGoQuotaResult,
+  OpenCodeGoQuotaState,
+  OpenCodeGoQuotaWindow,
   XaiBillingConfig,
   XaiBillingSummary,
   XaiQuotaState,
@@ -75,6 +78,7 @@ import {
   isCodexFile,
   isDisabledAuthFile,
   isKimiFile,
+  isOpenCodeGoFile,
   isXaiFile,
 } from '@/utils/quota';
 import { normalizeAuthIndex } from '@/utils/authIndex';
@@ -84,7 +88,7 @@ import styles from '@/pages/QuotaPage.module.scss';
 
 type QuotaUpdater<T> = T | ((prev: T) => T);
 
-type QuotaType = 'antigravity' | 'claude' | 'codex' | 'kimi' | 'xai';
+type QuotaType = 'antigravity' | 'claude' | 'codex' | 'opencode-go' | 'kimi' | 'xai';
 
 type AntigravityQuotaData = {
   groups: AntigravityQuotaGroup[];
@@ -115,11 +119,13 @@ export interface QuotaStore {
   antigravityQuota: Record<string, AntigravityQuotaState>;
   claudeQuota: Record<string, ClaudeQuotaState>;
   codexQuota: Record<string, CodexQuotaState>;
+  opencodeGoQuota: Record<string, OpenCodeGoQuotaState>;
   kimiQuota: Record<string, KimiQuotaState>;
   xaiQuota: Record<string, XaiQuotaState>;
   setAntigravityQuota: (updater: QuotaUpdater<Record<string, AntigravityQuotaState>>) => void;
   setClaudeQuota: (updater: QuotaUpdater<Record<string, ClaudeQuotaState>>) => void;
   setCodexQuota: (updater: QuotaUpdater<Record<string, CodexQuotaState>>) => void;
+  setOpenCodeGoQuota: (updater: QuotaUpdater<Record<string, OpenCodeGoQuotaState>>) => void;
   setKimiQuota: (updater: QuotaUpdater<Record<string, KimiQuotaState>>) => void;
   setXaiQuota: (updater: QuotaUpdater<Record<string, XaiQuotaState>>) => void;
   clearQuotaCache: () => void;
@@ -1046,6 +1052,357 @@ const renderCodexItems = (
   return h(Fragment, null, ...nodes);
 };
 
+const readObjectField = (value: unknown): Record<string, unknown> | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+};
+
+const resolveOpenCodeGoCredentialId = (file: AuthFileItem): string => {
+  const credential = readObjectField(file.opencode_go);
+  return (
+    normalizeStringValue(credential?.id) ??
+    normalizeStringValue(file.id) ??
+    normalizeStringValue(file.name) ??
+    ''
+  );
+};
+
+const resolveOpenCodeGoCredentialName = (file: AuthFileItem): string => {
+  const credential = readObjectField(file.opencode_go);
+  return (
+    normalizeStringValue(file.credential_name) ??
+    normalizeStringValue(file.display_name) ??
+    normalizeStringValue(credential?.name) ??
+    normalizeStringValue(file.name) ??
+    ''
+  );
+};
+
+const resolveOpenCodeGoWorkspaceId = (file: AuthFileItem): string => {
+  const credential = readObjectField(file.opencode_go);
+  return (
+    normalizeStringValue(file.workspace_id) ??
+    normalizeStringValue(credential?.workspace_id) ??
+    ''
+  );
+};
+
+const selectOpenCodeGoQuotaResult = (
+  file: AuthFileItem,
+  results: OpenCodeGoQuotaResult[]
+): OpenCodeGoQuotaResult | null => {
+  if (results.length === 0) return null;
+
+  const credentialId = resolveOpenCodeGoCredentialId(file).toLowerCase();
+  const credentialName = resolveOpenCodeGoCredentialName(file).toLowerCase();
+  const workspaceId = resolveOpenCodeGoWorkspaceId(file).toLowerCase();
+
+  return (
+    results.find((result) => {
+      const resultCredentialId = normalizeStringValue(result.credential_id)?.toLowerCase() ?? '';
+      const resultName = normalizeStringValue(result.name)?.toLowerCase() ?? '';
+      const resultWorkspaceId = normalizeStringValue(result.workspace_id)?.toLowerCase() ?? '';
+      return (
+        (credentialId && resultCredentialId === credentialId) ||
+        (credentialName && resultName === credentialName) ||
+        (workspaceId && resultWorkspaceId === workspaceId)
+      );
+    }) ?? results[0]
+  );
+};
+
+const fetchOpenCodeGoQuota = async (
+  file: AuthFileItem,
+  t: TFunction
+): Promise<OpenCodeGoQuotaResult> => {
+  const credentialId = resolveOpenCodeGoCredentialId(file);
+  if (!credentialId) {
+    throw new Error(t('opencode_go_quota.missing_credential_id'));
+  }
+
+  const response = await authFilesApi.refreshOpenCodeGoQuota(credentialId);
+  const result = selectOpenCodeGoQuotaResult(file, response.quotas ?? []);
+  if (!result) {
+    throw new Error(t('opencode_go_quota.empty_data'));
+  }
+  if (result.error) {
+    throw createStatusError(result.error.message || t('opencode_go_quota.empty_data'));
+  }
+  return result;
+};
+
+const formatOpenCodeGoDuration = (t: TFunction, seconds: number): string => {
+  const totalMinutes = Math.max(1, Math.ceil(seconds / 60));
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+
+  if (days > 0) {
+    return t('opencode_go_quota.duration_day_hour', { days, hours });
+  }
+  if (hours > 0) {
+    return t('opencode_go_quota.duration_hour_minute', { hours, minutes });
+  }
+  if (minutes > 0) {
+    return t('opencode_go_quota.duration_minute', { minutes });
+  }
+  return t('opencode_go_quota.duration_less_than_minute');
+};
+
+const clampOpenCodeGoPercent = (value: number | null): number | null => {
+  if (value === null || !Number.isFinite(value)) return null;
+  return Math.max(0, Math.min(100, value));
+};
+
+const formatOpenCodeGoResetAt = (
+  resetAt: string | number | Date | undefined,
+  resetInSec: number | null
+): string => {
+  let date: Date | null = null;
+
+  if (resetAt) {
+    date = new Date(resetAt);
+  } else if (resetInSec !== null) {
+    date = new Date(Date.now() + resetInSec * 1000);
+  }
+
+  if (!date || Number.isNaN(date.getTime())) {
+    return '--';
+  }
+
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hour = String(date.getHours()).padStart(2, '0');
+  const minute = String(date.getMinutes()).padStart(2, '0');
+
+  return `${month}/${day} ${hour}:${minute}`;
+};
+
+const getOpenCodeGoQuotaStatus = (remaining: number | null): 'normal' | 'warning' | 'danger' => {
+  if (remaining === null) return 'warning';
+  if (remaining >= QUOTA_PROGRESS_HIGH_THRESHOLD) return 'normal';
+  if (remaining >= QUOTA_PROGRESS_MEDIUM_THRESHOLD) return 'warning';
+  return 'danger';
+};
+
+const getOpenCodeGoQuotaFillClass = (
+  status: 'normal' | 'warning' | 'danger',
+  styleMap: QuotaRenderHelpers['styles']
+): string => {
+  if (status === 'danger') return styleMap.opencodeGoQuotaBarFillDanger;
+  if (status === 'warning') return styleMap.opencodeGoQuotaBarFillWarning;
+  return styleMap.opencodeGoQuotaBarFillNormal;
+};
+
+const OPEN_CODE_GO_WINDOW_KEYS = [
+  { id: 'rolling', labelKey: 'opencode_go_quota.rolling_limit' },
+  { id: 'weekly', labelKey: 'opencode_go_quota.weekly_limit' },
+  { id: 'monthly', labelKey: 'opencode_go_quota.monthly_limit' },
+] as const;
+
+const normalizeOpenCodeGoPlanType = (value?: string | null): string | null => {
+  const normalized = normalizeStringValue(value)
+    ?.toLowerCase()
+    .replace(/[_\s]+/g, '-')
+    .replace(/^open-?code-?/, '');
+  if (!normalized) return null;
+  if (normalized === 'go') return 'go';
+  if (normalized === 'plus') return 'plus';
+  if (normalized === 'team') return 'team';
+  if (normalized === 'free') return 'free';
+  return normalized;
+};
+
+const getOpenCodeGoPlanLabel = (plan: string | null | undefined, t: TFunction): string | null => {
+  const normalized = normalizeOpenCodeGoPlanType(plan);
+  if (!normalized) return null;
+  if (normalized === 'go') return t('opencode_go_quota.plan_go');
+  if (normalized === 'plus') return t('opencode_go_quota.plan_plus');
+  if (normalized === 'team') return t('opencode_go_quota.plan_team');
+  if (normalized === 'free') return t('opencode_go_quota.plan_free');
+  return plan || normalized;
+};
+
+const resolveOpenCodeGoPlanValue = (result: OpenCodeGoQuotaResult): string | null => {
+  const record = result as Record<string, unknown>;
+  const hasQuotaWindow = Boolean(result.rolling || result.weekly || result.monthly);
+  return (
+    normalizeStringValue(result.plan) ??
+    normalizeStringValue(
+      record.plan_type ??
+        record.planType ??
+        record.subscription_plan ??
+        record.subscriptionPlan ??
+        record.package ??
+        record.package_type ??
+        record.packageType ??
+        record.tier ??
+        record.tier_name ??
+        record.tierName
+    ) ??
+    (hasQuotaWindow ? 'go' : null)
+  );
+};
+
+const renderOpenCodeGoItems = (
+  quota: OpenCodeGoQuotaState,
+  t: TFunction,
+  helpers: QuotaRenderHelpers
+): ReactNode => {
+  const { styles: styleMap } = helpers;
+  const { createElement: h, Fragment } = React;
+  const result = quota.result;
+  if (!result) {
+    return h('div', { className: styleMap.quotaMessage }, t('opencode_go_quota.empty_data'));
+  }
+
+  const nodes: ReactNode[] = [];
+  const planLabel = getOpenCodeGoPlanLabel(resolveOpenCodeGoPlanValue(result), t);
+  const workspaceId = normalizeStringValue(result.workspace_id);
+  const fetchedAt = normalizeStringValue(result.fetched_at);
+  const cookieRenewedAt = normalizeStringValue(result.cookie_renewed_at);
+  const metaNodes: ReactNode[] = [];
+
+  if (planLabel) {
+    metaNodes.push(
+      h(
+        'span',
+        { key: 'plan', className: `${styleMap.codexPlanItem} ${styleMap.opencodeGoQuotaMetaItem}` },
+        h('span', { className: styleMap.codexPlanLabel }, t('opencode_go_quota.plan_label')),
+        h('span', { className: styleMap.codexPlanValue }, planLabel)
+      )
+    );
+  }
+  if (fetchedAt) {
+    metaNodes.push(
+      h(
+        'span',
+        {
+          key: 'fetched-at',
+          className: `${styleMap.codexPlanItem} ${styleMap.opencodeGoQuotaMetaItem}`,
+        },
+        h('span', { className: styleMap.codexPlanLabel }, t('opencode_go_quota.fetched_at')),
+        h('span', { className: styleMap.codexPlanValue }, formatDateTimeValue(fetchedAt))
+      )
+    );
+  }
+  if (cookieRenewedAt) {
+    metaNodes.push(
+      h(
+        'span',
+        {
+          key: 'cookie-renewed-at',
+          className: `${styleMap.codexPlanItem} ${styleMap.opencodeGoQuotaMetaItem}`,
+        },
+        h('span', { className: styleMap.codexPlanLabel }, t('opencode_go_quota.cookie_renewed_at')),
+        h('span', { className: styleMap.codexPlanValue }, formatDateTimeValue(cookieRenewedAt))
+      )
+    );
+  }
+  if (workspaceId) {
+    metaNodes.push(
+      h(
+        'span',
+        { key: 'workspace', className: styleMap.codexPlanItem },
+        h('span', { className: styleMap.codexPlanLabel }, t('opencode_go_quota.workspace_label')),
+        h('span', { className: styleMap.codexPlanValue }, workspaceId)
+      )
+    );
+  }
+  if (metaNodes.length > 0) {
+    nodes.push(
+      h(
+        'div',
+        { key: 'meta', className: `${styleMap.codexPlan} ${styleMap.opencodeGoQuotaMeta}` },
+        ...metaNodes
+      )
+    );
+  }
+
+  const windows = OPEN_CODE_GO_WINDOW_KEYS.map((entry) => ({
+    ...entry,
+    window: result[entry.id],
+  })).filter(
+    (entry): entry is (typeof OPEN_CODE_GO_WINDOW_KEYS)[number] & { window: OpenCodeGoQuotaWindow } =>
+      Boolean(entry.window)
+  );
+
+  if (windows.length === 0) {
+    nodes.push(
+      h(
+        'div',
+        { key: 'empty', className: styleMap.quotaMessage },
+        t('opencode_go_quota.empty_data')
+      )
+    );
+    return h(Fragment, null, ...nodes);
+  }
+
+  nodes.push(
+    h(
+      'div',
+      { key: 'windows', className: styleMap.opencodeGoQuotaWindows },
+      ...windows.map(({ id, labelKey, window }) => {
+        const used = clampOpenCodeGoPercent(normalizeNumberValue(window.usage_percent));
+        const remainingRaw = clampOpenCodeGoPercent(normalizeNumberValue(window.remaining_percent));
+        const remaining =
+          used !== null ? Math.max(0, Math.min(100, 100 - used)) : remainingRaw;
+        const usedPercent = used === null ? null : Math.round(used);
+        const remainingPercent = remaining === null ? null : Math.round(remaining);
+        const resetInSec = normalizeNumberValue(window.reset_in_sec);
+        const resetAtLabel = formatOpenCodeGoResetAt(window.reset_at, resetInSec);
+        const relativeResetLabel =
+          resetInSec !== null && resetInSec > 0 ? formatOpenCodeGoDuration(t, resetInSec) : '';
+        const status = getOpenCodeGoQuotaStatus(remaining);
+        const fillClass = getOpenCodeGoQuotaFillClass(status, styleMap);
+        const remainingWidthPercent = Math.round((remaining ?? 0) * 100) / 100;
+        const title = relativeResetLabel
+          ? t('opencode_go_quota.window_tooltip', {
+              used: usedPercent ?? '--',
+              remaining: remainingPercent ?? '--',
+              resetAt: resetAtLabel,
+              relative: relativeResetLabel,
+            })
+          : t('opencode_go_quota.window_tooltip_no_relative', {
+              used: usedPercent ?? '--',
+              remaining: remainingPercent ?? '--',
+              resetAt: resetAtLabel,
+            });
+
+        return h(
+          'div',
+          { key: id, className: styleMap.opencodeGoQuotaWindow, title },
+          h(
+            'div',
+            { className: styleMap.opencodeGoQuotaWindowHeader },
+            h('span', { className: styleMap.quotaModel }, t(labelKey)),
+            h(
+              'div',
+              { className: styleMap.opencodeGoQuotaWindowMeta },
+              h(
+                'span',
+                { className: styleMap.opencodeGoQuotaPercent },
+                remainingPercent === null ? '--' : `${remainingPercent}%`
+              ),
+              h('span', { className: styleMap.opencodeGoQuotaResetAt }, resetAtLabel)
+            )
+          ),
+          h(
+            'div',
+            { className: styleMap.quotaBar },
+            h('div', {
+              className: `${styleMap.quotaBarFill} ${fillClass}`,
+              style: { width: `${remainingWidthPercent}%` },
+            })
+          )
+        );
+      })
+    )
+  );
+
+  return h(Fragment, null, ...nodes);
+};
+
 const buildClaudeQuotaWindows = (
   payload: ClaudeUsagePayload,
   t: TFunction
@@ -1361,6 +1718,29 @@ export const CODEX_CONFIG: QuotaConfig<CodexQuotaState, CodexQuotaData> = {
   controlClassName: styles.codexControl,
   gridClassName: styles.codexGrid,
   renderQuotaItems: renderCodexItems,
+};
+
+export const OPENCODE_GO_CONFIG: QuotaConfig<OpenCodeGoQuotaState, OpenCodeGoQuotaResult> = {
+  type: 'opencode-go',
+  i18nPrefix: 'opencode_go_quota',
+  cardIdleMessageKey: 'quota_management.card_idle_hint',
+  filterFn: (file) => isOpenCodeGoFile(file) && !isDisabledAuthFile(file),
+  fetchQuota: fetchOpenCodeGoQuota,
+  storeSelector: (state) => state.opencodeGoQuota,
+  storeSetter: 'setOpenCodeGoQuota',
+  buildLoadingState: () => ({ status: 'loading', result: null }),
+  buildSuccessState: (result) => ({ status: 'success', result }),
+  buildErrorState: (message, status) => ({
+    status: 'error',
+    result: null,
+    error: message,
+    errorStatus: status,
+  }),
+  cardClassName: styles.opencodeGoCard,
+  controlsClassName: styles.opencodeGoControls,
+  controlClassName: styles.opencodeGoControl,
+  gridClassName: styles.opencodeGoGrid,
+  renderQuotaItems: renderOpenCodeGoItems,
 };
 
 const fetchKimiQuota = async (file: AuthFileItem, t: TFunction): Promise<KimiQuotaRow[]> => {

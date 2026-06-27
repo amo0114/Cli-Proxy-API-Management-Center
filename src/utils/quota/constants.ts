@@ -26,6 +26,10 @@ export const TYPE_COLORS: Record<string, TypeColorSet> = {
     light: { bg: '#eae7ff', text: '#3538d4' },
     dark: { bg: '#262395', text: '#b5b0ff' },
   },
+  'opencode-go': {
+    light: { bg: '#def7ec', text: '#047857' },
+    dark: { bg: '#064e3b', text: '#86efac' },
+  },
   kimi: {
     light: { bg: '#dce8ff', text: '#0560cf' },
     dark: { bg: '#003880', text: '#70b5ff' },

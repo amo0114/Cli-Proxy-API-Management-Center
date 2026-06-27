@@ -203,6 +203,62 @@ export interface CodexQuotaState {
   errorStatus?: number;
 }
 
+export interface OpenCodeGoCredential {
+  id: string;
+  type: 'opencode_go' | string;
+  name: string;
+  enabled: boolean;
+  workspace_id: string;
+  auth_cookie?: string;
+  masked_auth_cookie?: string;
+  cookie_renewed_at?: string;
+  show_rolling: boolean;
+  show_weekly: boolean;
+  show_monthly: boolean;
+  refresh_interval_sec: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface OpenCodeGoQuotaWindow {
+  label: string;
+  usage_percent: number | string;
+  remaining_percent: number | string;
+  reset_in_sec: number | string;
+  reset_at?: string;
+}
+
+export interface OpenCodeGoQuotaError {
+  code?: string;
+  message?: string;
+}
+
+export interface OpenCodeGoQuotaResult {
+  credential_id?: string;
+  name?: string;
+  workspace_id?: string;
+  plan?: string;
+  cookie_renewed_at?: string;
+  rolling?: OpenCodeGoQuotaWindow | null;
+  weekly?: OpenCodeGoQuotaWindow | null;
+  monthly?: OpenCodeGoQuotaWindow | null;
+  fetched_at?: string;
+  cached?: boolean;
+  error?: OpenCodeGoQuotaError | null;
+}
+
+export interface OpenCodeGoQuotaResponse {
+  credentials?: OpenCodeGoCredential[];
+  quotas?: OpenCodeGoQuotaResult[];
+}
+
+export interface OpenCodeGoQuotaState {
+  status: 'idle' | 'loading' | 'success' | 'error';
+  result: OpenCodeGoQuotaResult | null;
+  error?: string;
+  errorStatus?: number;
+}
+
 // Kimi API payload types
 export interface KimiUsageDetail {
   used?: number;
